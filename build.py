@@ -30,7 +30,7 @@ def build_firmware(clean):
     build_dir = get_absolute_path("build")
 
     # Set the source directory (where CMakeLists.txt is)
-    source_dir = get_absolute_path("firmware/FreeRTOS-example")  # Assuming CMakeLists.txt is in the firmware directory
+    source_dir = get_absolute_path("firmware/Source")  # Assuming CMakeLists.txt is in the firmware directory
 
     if clean:
         clean_build_directory(build_dir)

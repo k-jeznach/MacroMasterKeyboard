@@ -13,7 +13,7 @@ def build_firmware():
         "docker", "run", "--rm",
         "-v", f"{os.getcwd()}:/build",
         "-v", f"{os.getcwd()}:/output",
-        "-w", "/build", "<DOCKER_IMAGE>", "python", "build.py", "--clean"
+        "-w", "/build", "water_scale", "python", "build.py", "--clean"
     ]
     subprocess.run(docker_cmd, check=True)
     logging.info("Firmware build process completed.")

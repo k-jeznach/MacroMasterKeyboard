@@ -1,28 +1,11 @@
-/*
- * FreeRTOS V202212.00
- * Copyright (C) 2020 Amazon.com, Inc. or its affiliates.  All Rights Reserved.
+/******************************************************************************
+ * File:        blink.c
+ * Author:      Konrad Jeznach
+ * Email:       konznach@gmail.com
+ * GitHub:      https://github.com/k-jeznach
  *
- * Permission is hereby granted, free of charge, to any person obtaining a copy of
- * this software and associated documentation files (the "Software"), to deal in
- * the Software without restriction, including without limitation the rights to
- * use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
- * the Software, and to permit persons to whom the Software is furnished to do so,
- * subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in all
- * copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
- * FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
- * COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
- * IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
- * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
- *
- * https://www.FreeRTOS.org
- * https://github.com/FreeRTOS
- *
- */
+ * Copyright (c) 2025 Konrad Jeznach. All rights reserved.
+ ******************************************************************************/
 
 /* Kernel includes. */
 #include "FreeRTOS.h"
@@ -30,16 +13,14 @@
 #include "semphr.h"
 
 /* Library includes. */
+#include "os.h"
 #include <stdio.h>
 #include "hardware/gpio.h"
-
-/* Priorities at which the tasks are created. */
-#define mainQUEUE_RECEIVE_TASK_PRIORITY (tskIDLE_PRIORITY + 2)
-#define mainQUEUE_SEND_TASK_PRIORITY (tskIDLE_PRIORITY + 1)
 
 /* The rate at which data is sent to the queue.  The 200ms value is converted
 to ticks using the portTICK_PERIOD_MS constant. */
 #define mainQUEUE_SEND_FREQUENCY_MS (1000 / portTICK_PERIOD_MS)
+int led_delay_ms = 1000;
 
 /* The number of items the queue can hold.  This is 1 as the receive task
 will remove items as they are added, meaning the send task should always find
@@ -50,8 +31,6 @@ the queue empty. */
 #define mainTASK_LED (PICO_DEFAULT_LED_PIN)
 
 /*-----------------------------------------------------------*/
-
-void main_blinky(void);
 
 /*
  * The tasks as described in the comments at the top of this file.
@@ -66,10 +45,8 @@ static QueueHandle_t xQueue = NULL;
 
 /*-----------------------------------------------------------*/
 
-void main_blinky(void)
+void blink(void)
 {
-	printf(" Starting main_blinky.\n");
-
 	/* Create the queue. */
 	xQueue = xQueueCreate(mainQUEUE_LENGTH, sizeof(uint32_t));
 
@@ -77,27 +54,15 @@ void main_blinky(void)
 	{
 		/* Start the two tasks as described in the comments at the top of this
 		file. */
-		xTaskCreate(prvQueueReceiveTask,			 /* The function that implements the task. */
-					"Rx",							 /* The text name assigned to the task - for debug only as it is not used by the kernel. */
-					configMINIMAL_STACK_SIZE,		 /* The size of the stack to allocate to the task. */
-					NULL,							 /* The parameter passed to the task - not used in this case. */
-					mainQUEUE_RECEIVE_TASK_PRIORITY, /* The priority assigned to the task. */
-					NULL);							 /* The task handle is not required, so NULL is passed. */
+		xTaskCreate(prvQueueReceiveTask,	  /* The function that implements the task. */
+					"Rx",					  /* The text name assigned to the task - for debug only as it is not used by the kernel. */
+					configMINIMAL_STACK_SIZE, /* The size of the stack to allocate to the task. */
+					NULL,					  /* The parameter passed to the task - not used in this case. */
+					OSPRIORITYLOW1,			  /* The priority assigned to the task. */
+					NULL);					  /* The task handle is not required, so NULL is passed. */
 
-		xTaskCreate(prvQueueSendTask, "TX", configMINIMAL_STACK_SIZE, NULL, mainQUEUE_SEND_TASK_PRIORITY, NULL);
-
-		/* Start the tasks and timer running. */
-		vTaskStartScheduler();
+		xTaskCreate(prvQueueSendTask, "TX", configMINIMAL_STACK_SIZE, NULL, OSPRIORITYLOW2, NULL);
 	}
-
-	/* If all is well, the scheduler will now be running, and the following
-	line will never be reached.  If the following line does execute, then
-	there was insufficient FreeRTOS heap memory available for the Idle and/or
-	timer tasks to be created.  See the memory management section on the
-	FreeRTOS web site for more details on the FreeRTOS heap
-	http://www.freertos.org/a00111.html. */
-	for (;;)
-		;
 }
 /*-----------------------------------------------------------*/
 
@@ -105,6 +70,7 @@ static void prvQueueSendTask(void *pvParameters)
 {
 	TickType_t xNextWakeTime;
 	const unsigned long ulValueToSend = 100UL;
+	uint32_t led_delay_ms_tics = led_delay_ms / portTICK_PERIOD_MS;
 
 	/* Remove compiler warning about unused parameter. */
 	(void)pvParameters;
@@ -115,7 +81,7 @@ static void prvQueueSendTask(void *pvParameters)
 	for (;;)
 	{
 		/* Place this task in the blocked state until it is time to run again. */
-		vTaskDelayUntil(&xNextWakeTime, mainQUEUE_SEND_FREQUENCY_MS);
+		vTaskDelayUntil(&xNextWakeTime, led_delay_ms_tics);
 
 		/* Send to the queue - causing the queue receive task to unblock and
 		toggle the LED.  0 is used as the block time so the sending operation

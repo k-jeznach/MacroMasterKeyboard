@@ -55,6 +55,9 @@
 #include "pico/multicore.h"
 #endif
 
+#include "usb_keyboard_hid.h"
+#include "ssd1306_driver.h"
+
 /* Set mainCREATE_SIMPLE_BLINKY_DEMO_ONLY to one to run the simple blinky demo,
 or 0 to run the more comprehensive test and demo application. */
 
@@ -65,11 +68,7 @@ or 0 to run the more comprehensive test and demo application. */
  */
 static void prvSetupHardware(void);
 
-/*
- * main_blinky() is used when mainCREATE_SIMPLE_BLINKY_DEMO_ONLY is set to 1.
- * main_full() is used when mainCREATE_SIMPLE_BLINKY_DEMO_ONLY is set to 0.
- */
-extern void main_blinky(void);
+extern void blink(void);
 
 /* Prototypes for the standard FreeRTOS callback/hook functions implemented
 within this file. */
@@ -82,26 +81,21 @@ void vApplicationTickHook(void);
 
 void vLaunch(void)
 {
-    main_blinky();
+    blink();
+    usb_hid_keyboard_init();
 }
 
 int main(void)
 {
-    /* Configure the hardware ready to run the demo. */
     prvSetupHardware();
-    const char *rtos_name;
-#if (portSUPPORT_SMP == 1)
-    rtos_name = "FreeRTOS SMP";
-#else
-    rtos_name = "FreeRTOS";
-#endif
 
-#if (portSUPPORT_SMP == 1) && (configNUMBER_OF_CORES == 2)
-    printf("%s on both cores:\n", rtos_name);
     vLaunch();
-#endif
+    vTaskStartScheduler();
 
-    return 0;
+    // The following line should never been reached if everything is well.
+    for (;;)
+
+        return 0;
 }
 /*-----------------------------------------------------------*/
 
@@ -111,6 +105,7 @@ static void prvSetupHardware(void)
     gpio_init(PICO_DEFAULT_LED_PIN);
     gpio_set_dir(PICO_DEFAULT_LED_PIN, 1);
     gpio_put(PICO_DEFAULT_LED_PIN, !PICO_DEFAULT_LED_PIN_INVERTED);
+    ssd1306_driver_init(); // Temporary until enabling display task
 }
 /*-----------------------------------------------------------*/
 
