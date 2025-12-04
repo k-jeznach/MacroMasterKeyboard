@@ -12,7 +12,7 @@
 static void initialize_keyboard_hid()
 {
     board_init();
-    tusb_init();
+    tud_init(0);
 }
 
 void send_key(uint8_t keycode)
@@ -45,7 +45,7 @@ static void usb_hid_keyboard_task(void *pvParameters)
     while (1)
     {
         tud_task();
-        vTaskDelay(pdMS_TO_TICKS(100));
+        vTaskDelay(pdMS_TO_TICKS(2));
     }
 }
 
